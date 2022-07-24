@@ -79,13 +79,14 @@ class RMLKR(MLKR, MahalanobisMixin, TransformerMixin):
     The learned linear transformation ``L``.
     """
 
-    def __init__(self, n_components=None, init='auto', tol=None, max_iter=1000, verbose=False, preprocessor=None, random_state=None, lambda_= 0.5):
+    def __init__(self, n_components=None, init='auto', tol=None, max_iter=1000, verbose=False, preprocessor=None, random_state=None, reg_method = 'ridge', lambda_= 0.5):
         self.n_components = n_components
         self.init = init
         self.tol = tol
         self.max_iter = max_iter
         self.verbose = verbose
         self.random_state = random_state
+        self.reg_method = reg_method
         self.lambda_ = lambda_
         super(MLKR, self).__init__(preprocessor)
 
@@ -95,10 +96,16 @@ class RMLKR(MLKR, MahalanobisMixin, TransformerMixin):
         """
         
         cost, grad = self._loss(flatA, X, y)
-
-        cost_lambda = 0.5 * lambda_ * np.sum(flatA ** 2)
-        grad_lambda = lambda_ * flatA
-
+        if self.reg_method == 'ridge':
+          cost_lambda = 0.5 * lambda_ * np.sum(flatA ** 2)
+          grad_lambda = lambda_ * flatA
+        elif self.reg_method == 'lasso':
+          cost_lambda = 0.5 * lambda_ * np.sum(np.abs(flatA))
+          grad_lambda = 0.5 * lambda_ * np.sign(flatA)
+        else:
+          cost_lambda = 0
+          grad_lambda = 0
+        
         return cost+ cost_lambda, grad + grad_lambda
 
     def fit(self, X, y):
